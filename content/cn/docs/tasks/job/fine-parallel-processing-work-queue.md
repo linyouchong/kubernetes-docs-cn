@@ -2,34 +2,32 @@
 cn-approvers:
 - linyouchong
 title: 使用工作队列进行粗粒度并行处理
+content_template: templates/task
+weight: 30
 ---
 <!--
 ---
 title: Coarse Parallel Processing Using a Work Queue
+content_template: templates/task
+weight: 30
 ---
 -->
 
-* TOC
-{:toc}
+{{< toc >}}
 
-<!--
-# Example: Job with Work Queue with Pod Per Work Item
--->
-# 示例：每个 Pod 处理工作队列中的单个工作项的 Job
+{{% capture overview %}}
 
 <!--
 In this example, we will run a Kubernetes Job with multiple parallel
-worker processes.  You may want to be familiar with the basic,
-non-parallel, use of [Job](/docs/concepts/jobs/run-to-completion-finite-workloads/) first.
+worker processes. 
 -->
-在这个例子中，我们会运行一个存在多个并行工作进程的 Kubernetes Job。您可能希望先了解一些基础的、非并行使用 [Job](/docs/concepts/jobs/run-to-completion-finite-workloads/) 的知识。
+在这个例子中，我们会运行一个存在多个并行工作进程的 Kubernetes Job。
 
 <!--
 In this example, as each pod is created, it picks up one unit of work
 from a task queue, completes it, deletes it from the queue, and exits.
 -->
 在这个例子中，当每个pod被创建时，它会从一个任务队列中获取一个工作单元，处理它，然后将其从队列中删除，最后退出。
-
 
 <!--
 Here is an overview of the steps in this example:
@@ -51,6 +49,24 @@ Here is an overview of the steps in this example:
   one task from the message queue, processes it, and repeats until the end of the queue is reached.
 -->
 1. **启动一个 Job 对队列中的任务进行处理**。这个 Job 启动了若干个 Pod 。每个 Pod 从消息队列中取出一个工作任务，处理它，然后重复，直到到达队列的尾部。
+
+{{% /capture %}}
+
+{{< toc >}}
+
+{{% capture prerequisites %}}
+<!--
+Be familiar with the basic,
+non-parallel, use of [Job](/docs/concepts/jobs/run-to-completion-finite-workloads/).
+-->
+
+熟悉基础知识，非并行方式运行 [Job](/docs/concepts/jobs/run-to-completion-finite-workloads/)。
+
+{{< include "task-tutorial-prereqs.md" >}} {{< version-check >}}
+
+{{% /capture %}}
+
+{{% capture steps %}}
 
 <!--
 ## Starting a message queue service
@@ -274,17 +290,17 @@ example program:
 -->
 我们将使用 `amqp-consume` 工具从队列中读取消息并运行我们实际的工作程序。这里有一个非常简单的示例程序:
 
-{% include code.html language="python" file="worker.py" ghlink="/docs/tasks/job/coarse-parallel-processing-work-queue/worker.py" %}
+{{< codenew language="python" file="application/job/rabbitmq/worker.py" >}}
 
 <!--
 Now, build an image.  If you are working in the source
 tree, then change directory to `examples/job/work-queue-1`.
 Otherwise, make a temporary directory, change to it,
-download the [Dockerfile](Dockerfile?raw=true),
-and [worker.py](worker.py?raw=true).  In either case,
+download the [Dockerfile](/examples/application/job/rabbitmq/Dockerfile),
+and [worker.py](/examples/application/job/rabbitmq/worker.py).  In either case,
 build the image with this command:
 -->
-现在，构建一个镜像。如果您使用了本文档库的源代码目录，请切换到 `examples/job/work-queue-1` 目录。否则，请创建一个临时目录，然后切换到这个目录，下载 [worker.py](worker.py?raw=true)。上述两种方法,
+现在，构建一个镜像。如果您使用了本文档库的源代码目录，请切换到 `examples/job/work-queue-1` 目录。否则，请创建一个临时目录，然后切换到这个目录，下载 [Dockerfile](/examples/application/job/rabbitmq/Dockerfile) 和 [worker.py](/examples/application/job/rabbitmq/worker.py)。上述两种方法,
 都可以用这个命令构建像像：
 
 ```shell
@@ -329,7 +345,7 @@ image to match the name you used, and call it `./job.yaml`.
 这里有一个 Job 定义。您需要复制它并修改其中的 image 字段为您使用的镜像名称，然后调用它 `./job.yaml`。
 
 
-{% include code.html language="yaml" file="job.yaml" ghlink="/docs/tasks/job/coarse-parallel-processing-work-queue/job.yaml" %}
+{{< codenew file="application/job/rabbitmq/job.yaml" >}}
 
 <!--
 In this example, each pod works on one item from the queue and then exits.
@@ -399,6 +415,10 @@ All our pods succeeded.  Yay.
 -->
 我们所有的 pod 都成功了。太好了。
 
+{{% /capture %}}
+
+{{% capture discussion %}}
+
 <!--
 ## Alternatives
 -->
@@ -461,3 +481,5 @@ back to the api-server, then the Job will not appear to be complete, even though
 in the queue have been processed.
 -->
 这种模式存在一种不太可能会出现异常。如果容器在 amqp-consume 命令确认消息的时刻和容器成功退出的时刻的间隙被杀死,又或者如果在 kubelet 向 api-server 发布 pod 已经成功的信息之前，该节点崩溃了,则 Job 不会变为完成状态，即使队列中的所有工作项已经处理完成。
+
+{{% /capture %}}
